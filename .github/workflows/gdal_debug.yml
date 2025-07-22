@@ -17,8 +17,10 @@ jobs:
     - name: Build the Docker image
       env:
         IMAGE_TAG: ${{ github.sha }} # 用于标记容器版本号
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
       run: |
-        docker login registry-1.docker.io -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWD
+        docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
         docker build . --file Dockerfile --tag registry-1.docker.io/flyisnow/gdal_debug:$IMAGE_TAG
         docker push registry-1.docker.io/flyisnow/gdal_debug:$IMAGE_TAG
         
