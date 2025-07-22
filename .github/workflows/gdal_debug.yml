@@ -1,0 +1,24 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      env:
+        IMAGE_TAG: ${{ github.sha }} # 用于标记容器版本号
+      run: |
+        docker login registry-1.docker.io -u $DOCKERHUB_USER -p $DOCKERHUB_PASSWD
+        docker build . --file Dockerfile --tag registry-1.docker.io/flyisnow/gdal_debug:$IMAGE_TAG
+        docker push registry-1.docker.io/flyisnow/gdal_debug:$IMAGE_TAG
+        
