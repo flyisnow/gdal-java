@@ -1,0 +1,25 @@
+name: gdal 3.10Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the gdal Docker image
+      env:
+        IMAGE_TAG: ${{ github.sha }} # 用于标记容器版本号
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
+      run: |
+        git clone https://github.com/OSGeo/gdal -b release/3.10
+        cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64
+        docker images
+       
+        
