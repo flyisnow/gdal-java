@@ -18,7 +18,7 @@ jobs:
         DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
       run: |
-        git clone https://github.com/OSGeo/gdal -b release/3.10
+        mkdir OSGeo && cd OSGeo && git clone https://github.com/OSGeo/gdal -b release/3.10
         cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64
         docker images
        
