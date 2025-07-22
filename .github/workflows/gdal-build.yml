@@ -3,9 +3,8 @@ name: gdal 3.10Docker Image CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+    paths:
+      - 'gdal/Dockerfile'
 jobs:
 
   build:
