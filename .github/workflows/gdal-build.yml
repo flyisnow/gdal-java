@@ -1,10 +1,10 @@
-name: gdal 3.10Docker Image CI
+name: build gdal 3.10 Docker Image
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - 'gdal/Dockerfile'
+      - '.github/workflows/gdal-build.yml'
 jobs:
 
   build:
