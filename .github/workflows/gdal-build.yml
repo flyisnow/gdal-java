@@ -18,7 +18,7 @@ jobs:
         DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
         
       run: |
-        echo "registry-1.docker.io"> /tmp/gdal_docker_repo.txt
+        docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
         export TARGET_IMAGE=flyisnow/gdal
         mkdir OSGeo && cd OSGeo && git clone https://github.com/flyisnow/gdal -b release/3.10
         cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag 3.10 --gdal 3.10.3 --proj 9.3.1 --release --with-debug-symbols --no-rsync-daemon
