@@ -32,7 +32,7 @@ public class MainApplication {
         int rows = (int)shape.get(0);
         int columns =(int) shape.get(1);
         Dataset dst = dstDriver.Create("", columns,rows,  1, gdalconst.GDT_Byte);
-        dst.GetRasterBand(1).WriteRaster(0, 0, columns, rows, varArr.toType(DataType.FLOAT64, true).reshape(-1).toFloatArray());
+        dst.GetRasterBand(1).WriteRaster(0, 0, columns, rows, varArr.reshape(-1).toFloatArray());
         Driver pngDriver = gdal.GetDriverByName("PNG");
         Dataset pngDs = pngDriver.CreateCopy(filePath, dst, 0);
 
