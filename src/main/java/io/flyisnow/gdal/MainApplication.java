@@ -23,10 +23,11 @@ public class MainApplication {
         NDArray zeros = manager.ones(new Shape(100, 100), DataType.FLOAT32);
         System.out.println("hello");
         System.out.println(zeros.getShape());
-        writePng("test.png", zeros);
+        printGdalDriver();
+        writePng("./测试-test.png", zeros);
     }
-
     public static void writePng(String filePath, NDArray varArr) {
+        System.out.println("输出png文件："+filePath);
         Driver dstDriver = gdal.GetDriverByName("mem");
         Shape shape = varArr.getShape();
         int rows = (int)shape.get(0);
@@ -39,6 +40,15 @@ public class MainApplication {
         pngDs.FlushCache();
         dst.delete();
 
+    }
+
+    public static void printGdalDriver(){
+        System.out.println("打印支持的gdal驱动");
+        int driverCnt =gdal.GetDriverCount();
+        for(int i=0;i< driverCnt;i++){
+            Driver driver = gdal.GetDriver(i);
+            System.out.println(driver.getShortName()+":"+ driver.getLongName());
+        }
     }
 
 }
