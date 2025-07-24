@@ -8,11 +8,15 @@ RUN cd /usr/local/share/proj && \
 # 安装中文字体和语言包
 RUN apt-get update && \
     apt-get install -y \
+    autoconf \
+    graphviz gv \
+    build-essential \
     locales \
     fonts-wqy-zenhei \
     fonts-wqy-microhei \
     ttf-wqy-zenhei \
     language-pack-zh-hans \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # 生成并设置中文语言环境
@@ -23,6 +27,14 @@ RUN sed -i '/zh_CN.UTF-8/s/^# //g' /etc/locale.gen && \
 # 设置默认语言环境 置时区和语言环境
 ENV LANG=zh_CN.UTF-8 LANGUAGE=zh_CN:zh LC_ALL=zh_CN.UTF-8  TZ=Asia/Shanghai LANG=C.UTF-8 LC_ALL=C.UTF-8
 
+RUN wget https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz  &&\
+    tar zxvf 5.3.0.tar.gz &&\
+    cd jemalloc-5.3.0/ &&\
+    ./autogen.sh &&\
+    ./configure --enable-prof  &&\
+    make -j &&\
+    make install  &&\
+    cd .. && rm -rf jemalloc-5.3.0 && rm -f 5.3.0.tar.gz 
 
 
     
