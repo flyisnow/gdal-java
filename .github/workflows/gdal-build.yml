@@ -20,8 +20,9 @@ jobs:
       run: |
         docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
         export TARGET_IMAGE=flyisnow/gdal
+        export JAVA_VERSION=8
         mkdir OSGeo && cd OSGeo && git clone https://github.com/flyisnow/gdal -b release/3.11
-        cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag ubuntu-full --gdal 3.11.3 --proj 9.6.2 --release --with-debug-symbols --no-rsync-daemon --build-arg JAVA_VERSION=8
+        cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag ubuntu-full --gdal 3.11.3 --proj 9.6.2 --release --with-debug-symbols --no-rsync-daemon 
         docker images
        
         
