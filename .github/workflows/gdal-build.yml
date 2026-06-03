@@ -22,8 +22,27 @@ jobs:
         docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
         export TARGET_IMAGE=flyisnow/gdal
         export JAVA_VERSION=8
+        export MONGO_C_DRIVER_VERSION=1.24.4
+        export MONGO_C_DRIVER_URL="https://github.com/mongodb/mongo-c-driver/releases/download/${MONGO_C_DRIVER_VERSION}/mongo-c-driver-${MONGO_C_DRIVER_VERSION}.tar.gz"
         mkdir OSGeo && cd OSGeo && git clone https://github.com/flyisnow/gdal -b release/3.11
-        cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag ubuntu-full --gdal 3.11.3 --proj 9.6.2 --release --with-debug-symbols --no-rsync-daemon 
+        cd gdal/docker/ubuntu-full
+        BUILD_OK=0
+        for i in 1 2 3; do
+          echo "GDAL docker build attempt $i/3"
+          if ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag ubuntu-full --gdal 3.11.3 --proj 9.6.2 --release --with-debug-symbols --no-rsync-daemon; then
+            BUILD_OK=1
+            break
+          else
+            echo "Build attempt $i failed. Collecting diagnostics..."
+            echo "Checking mongo-c-driver URL: $MONGO_C_DRIVER_URL"
+            curl -fsSLI --retry 3 --retry-all-errors "$MONGO_C_DRIVER_URL" | sed -n '1,20p' || true
+            docker system df || true
+          fi
+        done
+        if [ "$BUILD_OK" -ne 1 ]; then
+          echo "GDAL docker build failed after 3 attempts"
+          exit 1
+        fi
         docker images
         BASE_GDAL_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v '<none>' | head -n 1)
         if [ -z "$BASE_GDAL_IMAGE" ]; then
