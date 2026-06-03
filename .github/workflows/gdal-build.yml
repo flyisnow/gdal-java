@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Set image tag as current date
+      run: echo "IMAGE_TAG=$(date +%Y%m%d)" >> "$GITHUB_ENV"
     - name: Build the gdal Docker image
       env:
-        IMAGE_TAG: ${{ github.sha }} # 用于标记容器版本号
         DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
         
@@ -24,5 +25,44 @@ jobs:
         mkdir OSGeo && cd OSGeo && git clone https://github.com/flyisnow/gdal -b release/3.11
         cd gdal/docker/ubuntu-full && ./build.sh --platform linux/amd64 --push --docker-repository registry-1.docker.io --tag ubuntu-full --gdal 3.11.3 --proj 9.6.2 --release --with-debug-symbols --no-rsync-daemon 
         docker images
+        BASE_GDAL_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v '<none>' | head -n 1)
+        if [ -z "$BASE_GDAL_IMAGE" ]; then
+          echo "Failed to detect base GDAL image from previous build."
+          exit 1
+        fi
+        echo "BASE_GDAL_IMAGE=$BASE_GDAL_IMAGE" >> "$GITHUB_ENV"
+        echo "Using base image: $BASE_GDAL_IMAGE"
+
+    - name: Build and push the gdal_python Docker image
+      env:
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
+      run: |
+        docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
+        if [ -z "$BASE_GDAL_IMAGE" ]; then
+          echo "BASE_GDAL_IMAGE is empty."
+          exit 1
+        fi
+        cat > Dockerfile.gdal_python <<EOF
+        FROM $BASE_GDAL_IMAGE
+
+        RUN apt update && apt install -y \
+          graphviz \
+          gv \
+          autoconf \
+          python3-numpy \
+          python3-xarray \
+          python3-scipy \
+          python3-netcdf4 \
+          && rm -rf /var/lib/apt/lists/*
+        EOF
+        docker build . --file Dockerfile.gdal_python --tag registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+        docker push registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+
+        python3 -m pip install --user docker-squash
+        ~/.local/bin/docker-squash -t registry-1.docker.io/flyisnow/gdal_python_z:$IMAGE_TAG registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+        docker push registry-1.docker.io/flyisnow/gdal_python_z:$IMAGE_TAG
+
+        rm -f Dockerfile.gdal_python
        
         
