@@ -1,0 +1,55 @@
+name: build gdal python image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/gdal-python-build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set image tag as current date
+      run: echo "IMAGE_TAG=$(date +%Y%m%d)" >> "$GITHUB_ENV"
+
+    - name: Build and push gdal_python image from base
+      env:
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
+      run: |
+        docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
+        cat > Dockerfile.gdal_python <<EOF
+        FROM flyisnow/gdal:jdk8_v3
+
+        RUN apt update && apt install -y \
+          graphviz \
+          gv \
+          autoconf \
+          python3-pip \
+          python3-numpy \
+          python3-scipy \
+          python3-netcdf4 \
+          && python3 -m pip install --no-cache-dir xarray \
+          && rm -rf /var/lib/apt/lists/*
+        EOF
+
+        docker build . --file Dockerfile.gdal_python --tag registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+        docker push registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+
+    - name: Squash and push gdal_python_z image
+      env:
+        DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_HUB_PASSWD: ${{ secrets.DOCKER_HUB_PASSWD }}
+      run: |
+        docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
+        python3 -m pip install --user docker-squash
+        ~/.local/bin/docker-squash -t registry-1.docker.io/flyisnow/gdal_python_z:$IMAGE_TAG registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
+        docker push registry-1.docker.io/flyisnow/gdal_python_z:$IMAGE_TAG
+
+    - name: Cleanup temp Dockerfile
+      if: always()
+      run: rm -f Dockerfile.gdal_python
