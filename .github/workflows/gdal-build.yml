@@ -65,14 +65,17 @@ jobs:
         cat > Dockerfile.gdal_python <<EOF
         FROM $BASE_GDAL_IMAGE
 
-        RUN apt update && apt install -y \
+        RUN apt update && apt install -y --no-install-recommends \
           graphviz \
           gv \
           autoconf \
+          python3-pip \
           python3-numpy \
-          python3-xarray \
           python3-scipy \
           python3-netcdf4 \
+          && python3 -m pip install --no-cache-dir --break-system-packages xarray \
+          && apt purge -y --auto-remove python3-pip \
+          && apt clean \
           && rm -rf /var/lib/apt/lists/*
         EOF
         docker build . --file Dockerfile.gdal_python --tag registry-1.docker.io/flyisnow/gdal_python:$IMAGE_TAG
