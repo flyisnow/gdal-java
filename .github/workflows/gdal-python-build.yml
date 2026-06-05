@@ -24,7 +24,7 @@ jobs:
         docker login registry-1.docker.io -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWD
         cat > Dockerfile.gdal_python <<EOF
         FROM flyisnow/gdal:3.10.3-compress
-
+        
         RUN apt-get update && apt-get install -y --no-install-recommends \
           graphviz \
           gv \
