@@ -70,7 +70,7 @@ RUN \
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Install Python runtime and JRE8 (Temurin 8).
+# Install Python runtime and JDK8 (Temurin 8) - with compiler support.
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -85,7 +85,7 @@ RUN apt-get update && \
   echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" > /etc/apt/sources.list.d/adoptium.list && \
   apt-get update && \
   apt-get install -y --no-install-recommends \
-    temurin-8-jre && \
+    temurin-8-jdk && \
   apt-get purge -y --auto-remove curl gnupg && \
   rm -rf /var/lib/apt/lists/*
 
@@ -99,11 +99,11 @@ COPY --from=gdal_source /usr/share/gdal/ /usr/share/gdal/
 COPY --from=gdal_source /usr/share/proj/ /usr/share/proj/
 
 RUN ldconfig && \
-  rm -rf /usr/lib/jvm/temurin-8-jre-amd64/man \
-         /usr/lib/jvm/temurin-8-jre-amd64/sample 2>/dev/null || true
+  rm -rf /usr/lib/jvm/temurin-8-jdk-amd64/src.zip \
+         /usr/lib/jvm/temurin-8-jdk-amd64/sample \
+         /usr/lib/jvm/temurin-8-jdk-amd64/man
 
 ENV PATH="/opt/py312/bin:${PATH}"
 ENV JAVA_TOOL_OPTIONS="-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni"
 ENV PROJ_LIB="/usr/share/proj"
 ENV GDAL_DATA="/usr/share/gdal"
-
