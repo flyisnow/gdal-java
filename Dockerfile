@@ -103,7 +103,7 @@ RUN ldconfig && \
          /usr/lib/jvm/temurin-8-jre-amd64/sample 2>/dev/null || true
 
 ENV PATH="/opt/py312/bin:${PATH}"
-ENV JAVA_TOOL_OPTIONS="-Djava.library.path=/usr/lib/x86_64-linux-gnu/jni"
+ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/jni:${LD_LIBRARY_PATH}"
 ENV PROJ_LIB="/usr/share/proj"
 ENV GDAL_DATA="/usr/share/gdal"
 
