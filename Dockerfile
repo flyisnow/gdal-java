@@ -3,8 +3,9 @@ FROM flyisnow/gdal_python:3.10.3_20260605 AS gdal_source
 FROM flyisnow/gdal_python:3.10.3_20260605 AS gdal_runtime
 
 # Collect GDAL/JNI runtime artifacts plus transitive shared-library dependencies.
+# Also include NetCDF libraries for Java netcdfAll support.
 RUN set -eux; \
-  libs="/usr/lib/x86_64-linux-gnu/libgdal.so.36 /usr/lib/x86_64-linux-gnu/jni/libgdalalljni.so"; \
+  libs="/usr/lib/x86_64-linux-gnu/libgdal.so.36 /usr/lib/x86_64-linux-gnu/jni/libgdalalljni.so /usr/lib/x86_64-linux-gnu/libnetcdf.so.19"; \
   changed=1; \
   while [ "$changed" -eq 1 ]; do \
     changed=0; \
@@ -60,7 +61,9 @@ RUN \
     pandas \
     scipy \
     netCDF4 \
-    xarray && \
+    xarray \
+    cinrad \
+    awx && \
   find /opt/py312 -type d -name __pycache__ -prune -exec rm -rf {} + && \
   rm -rf /opt/py312/lib/python3.12/site-packages/pip \
          /opt/py312/lib/python3.12/site-packages/setuptools \
