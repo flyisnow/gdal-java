@@ -64,19 +64,30 @@ COPY --from=gdal_source /usr/lib/x86_64-linux-gnu/libgdal.so.36.3.10.3 /usr/lib/
 RUN \
   python3.12 -m venv /opt/py312 && \
   /opt/py312/bin/python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+  /opt/py312/bin/python -m pip install --no-cache-dir numpy cython && \
   /opt/py312/bin/python -m pip install --no-cache-dir \
     GDAL==3.10.3 \
     pandas \
     scipy \
     netCDF4 \
-    xarray && \
+    xarray \
+    awx \
+    matplotlib \
+    cartopy \
+    metpy \
+    pyshp && \
+  /opt/py312/bin/python -m pip install --no-cache-dir --no-build-isolation cinrad && \
+  /opt/py312/bin/python -c "import matplotlib.pyplot; import matplotlib.font_manager" && \
   find /opt/py312 -type d -name __pycache__ -prune -exec rm -rf {} + && \
   find /opt/py312 -type d -name tests -prune -exec rm -rf {} + && \
   find /opt/py312 -type d -name "test" -prune -exec rm -rf {} + && \
   find /opt/py312 -type f -name "*.pyc" -delete && \
   find /opt/py312 -type f -name "*.pyo" -delete && \
   find /opt/py312/lib/python3.12/site-packages -type d -name "*.dist-info" -exec sh -c 'rm -f "$1"/RECORD "$1"/INSTALLER "$1"/direct_url.json' _ {} \; && \
-  rm -rf /opt/py312/lib/python3.12/site-packages/pip \
+  rm -rf /opt/py312/lib/python3.12/site-packages/matplotlib/mpl-data/sample_data \
+         /opt/py312/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/*.ttf \
+         /opt/py312/lib/python3.12/site-packages/cartopy/data \
+         /opt/py312/lib/python3.12/site-packages/pip \
          /opt/py312/lib/python3.12/site-packages/setuptools \
          /opt/py312/lib/python3.12/site-packages/wheel \
          /opt/py312/share \

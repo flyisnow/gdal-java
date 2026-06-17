@@ -3,14 +3,17 @@ FROM flyisnow/gdal_python:3.10.3_20260605 AS gdal_source
 FROM flyisnow/gdal_python:3.10.3_20260605 AS gdal_runtime
 
 # Collect GDAL/JNI runtime artifacts plus transitive shared-library dependencies.
-# Also include NetCDF libraries for Java netcdfAll support.
+# Also include NetCDF libraries for Java netcdfAll support and gdalplugins.
 RUN set -eux; \
   libs="/usr/lib/x86_64-linux-gnu/libgdal.so.36 /usr/lib/x86_64-linux-gnu/jni/libgdalalljni.so /usr/lib/x86_64-linux-gnu/libnetcdf.so.19"; \
+  for plugin in /usr/lib/x86_64-linux-gnu/gdalplugins/*.so; do \
+    libs="$libs $plugin"; \
+  done; \
   changed=1; \
   while [ "$changed" -eq 1 ]; do \
     changed=0; \
     for f in $libs; do \
-      for dep in $(ldd "$f" | awk '/=> \/[^ ]+/ {print $3}'); do \
+      for dep in $(ldd "$f" 2>/dev/null | awk '/=> \/[^ ]+/ {print $3}'); do \
         dep_real="$(readlink -f "$dep")"; \
         for candidate in "$dep" "$dep_real"; do \
           case " $libs " in \
@@ -23,14 +26,19 @@ RUN set -eux; \
   done; \
   mkdir -p /opt/gdal-runtime/libs \
            /opt/gdal-runtime/jni \
-           /opt/gdal-runtime/java; \
+           /opt/gdal-runtime/java \
+           /opt/gdal-runtime/gdalplugins; \
   for f in $libs; do \
     case "$f" in \
       */jni/*) cp -a "$f" /opt/gdal-runtime/jni/ ;; \
+      */gdalplugins/*) cp -a "$f" /opt/gdal-runtime/gdalplugins/ ;; \
       *) cp -a "$f" /opt/gdal-runtime/libs/ ;; \
     esac; \
   done; \
-  cp -a /usr/share/java/gdal-3.10.3.jar /opt/gdal-runtime/java/
+  cp -a /usr/share/java/gdal-3.10.3.jar /opt/gdal-runtime/java/; \
+  if [ -f /usr/lib/x86_64-linux-gnu/gdalplugins/drivers.ini ]; then \
+    cp -a /usr/lib/x86_64-linux-gnu/gdalplugins/drivers.ini /opt/gdal-runtime/gdalplugins/; \
+  fi
 
 FROM ubuntu:24.04 AS py_builder
 
@@ -61,13 +69,17 @@ RUN \
     pandas \
     scipy \
     netCDF4 \
-    xarray \
-    cinrad \
-    awx && \
+    xarray && \
   find /opt/py312 -type d -name __pycache__ -prune -exec rm -rf {} + && \
+  find /opt/py312 -type d -name tests -prune -exec rm -rf {} + && \
+  find /opt/py312 -type d -name "test" -prune -exec rm -rf {} + && \
+  find /opt/py312 -type f -name "*.pyc" -delete && \
+  find /opt/py312 -type f -name "*.pyo" -delete && \
+  find /opt/py312/lib/python3.12/site-packages -type d -name "*.dist-info" -exec sh -c 'rm -f "$1"/RECORD "$1"/INSTALLER "$1"/direct_url.json' _ {} \; && \
   rm -rf /opt/py312/lib/python3.12/site-packages/pip \
          /opt/py312/lib/python3.12/site-packages/setuptools \
          /opt/py312/lib/python3.12/site-packages/wheel \
+         /opt/py312/share \
          /var/lib/apt/lists/*
 
 FROM ubuntu:24.04
@@ -82,7 +94,11 @@ RUN apt-get update && \
     graphviz \
     gv \
     python3.12 \
-    python3.12-venv && \
+    python3.12-venv \
+    locales && \
+  sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+  sed -i -e 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen && \
+  locale-gen && \
   mkdir -p /etc/apt/keyrings && \
   curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg && \
   echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" > /etc/apt/sources.list.d/adoptium.list && \
@@ -95,6 +111,7 @@ RUN apt-get update && \
 COPY --from=py_builder /opt/py312 /opt/py312
 COPY --from=gdal_runtime /opt/gdal-runtime/libs/ /usr/lib/x86_64-linux-gnu/
 COPY --from=gdal_runtime /opt/gdal-runtime/jni/ /usr/lib/x86_64-linux-gnu/jni/
+COPY --from=gdal_runtime /opt/gdal-runtime/gdalplugins/ /usr/lib/x86_64-linux-gnu/gdalplugins/
 COPY --from=gdal_runtime /opt/gdal-runtime/java/ /usr/share/java/
 COPY --from=gdal_source /usr/bin/gdal* /usr/bin/
 COPY --from=gdal_source /usr/bin/ogr* /usr/bin/
@@ -109,4 +126,8 @@ ENV PATH="/opt/py312/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/jni:${LD_LIBRARY_PATH}"
 ENV PROJ_LIB="/usr/share/proj"
 ENV GDAL_DATA="/usr/share/gdal"
+ENV GDAL_DRIVER_PATH="/usr/lib/x86_64-linux-gnu/gdalplugins"
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 

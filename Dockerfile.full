@@ -64,19 +64,30 @@ COPY --from=gdal_source /usr/lib/x86_64-linux-gnu/libgdal.so.36.3.10.3 /usr/lib/
 RUN \
   python3.12 -m venv /opt/py312 && \
   /opt/py312/bin/python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+  /opt/py312/bin/python -m pip install --no-cache-dir numpy cython && \
   /opt/py312/bin/python -m pip install --no-cache-dir \
     GDAL==3.10.3 \
     pandas \
     scipy \
     netCDF4 \
-    xarray && \
+    xarray \
+    awx \
+    matplotlib \
+    cartopy \
+    metpy \
+    pyshp && \
+  /opt/py312/bin/python -m pip install --no-cache-dir --no-build-isolation cinrad && \
+  /opt/py312/bin/python -c "import matplotlib.pyplot; import matplotlib.font_manager" && \
   find /opt/py312 -type d -name __pycache__ -prune -exec rm -rf {} + && \
   find /opt/py312 -type d -name tests -prune -exec rm -rf {} + && \
   find /opt/py312 -type d -name "test" -prune -exec rm -rf {} + && \
   find /opt/py312 -type f -name "*.pyc" -delete && \
   find /opt/py312 -type f -name "*.pyo" -delete && \
   find /opt/py312/lib/python3.12/site-packages -type d -name "*.dist-info" -exec sh -c 'rm -f "$1"/RECORD "$1"/INSTALLER "$1"/direct_url.json' _ {} \; && \
-  rm -rf /opt/py312/lib/python3.12/site-packages/pip \
+  rm -rf /opt/py312/lib/python3.12/site-packages/matplotlib/mpl-data/sample_data \
+         /opt/py312/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/*.ttf \
+         /opt/py312/lib/python3.12/site-packages/cartopy/data \
+         /opt/py312/lib/python3.12/site-packages/pip \
          /opt/py312/lib/python3.12/site-packages/setuptools \
          /opt/py312/lib/python3.12/site-packages/wheel \
          /opt/py312/share \
@@ -85,7 +96,7 @@ RUN \
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Install Python runtime and JDK8 (Temurin 8) - with compiler support.
+# Install Python runtime and JRE8 (Temurin 8).
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -104,7 +115,7 @@ RUN apt-get update && \
   echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" > /etc/apt/sources.list.d/adoptium.list && \
   apt-get update && \
   apt-get install -y --no-install-recommends \
-    temurin-8-jdk && \
+    temurin-8-jre && \
   apt-get purge -y --auto-remove curl gnupg && \
   rm -rf /var/lib/apt/lists/*
 
@@ -119,9 +130,8 @@ COPY --from=gdal_source /usr/share/gdal/ /usr/share/gdal/
 COPY --from=gdal_source /usr/share/proj/ /usr/share/proj/
 
 RUN ldconfig && \
-  rm -rf /usr/lib/jvm/temurin-8-jdk-amd64/src.zip \
-         /usr/lib/jvm/temurin-8-jdk-amd64/sample \
-         /usr/lib/jvm/temurin-8-jdk-amd64/man
+  rm -rf /usr/lib/jvm/temurin-8-jre-amd64/man \
+         /usr/lib/jvm/temurin-8-jre-amd64/sample 2>/dev/null || true
 
 ENV PATH="/opt/py312/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/jni:${LD_LIBRARY_PATH}"
@@ -131,3 +141,4 @@ ENV GDAL_DRIVER_PATH="/usr/lib/x86_64-linux-gnu/gdalplugins"
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
+
